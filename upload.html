@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid #003b22; padding-bottom: 10px; color: #003b22; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: #003b22; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0c4d29; }
+        .banner-list img, .gallery-list img, .logo-preview img { max-width: 150px; margin: 10px 10px 0 0; display: block; }
+        .flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .remove-btn { background: #d9534f; padding: 5px 10px; font-size: 0.8rem; margin-top: 5px;}
+        .remove-btn:hover { background: #c9302c; }
+        .section { background: #fafafa; border: 1px solid #eee; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Delta Greenville Admin</h1>
+    <div id="status" style="display:none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
+    
+    <div class="section">
+        <h3>Logo</h3>
+        <div class="logo-preview" id="logoPreview"></div>
+        <input type="file" id="logoUpload" accept="image/*">
+        <button type="button" onclick="uploadLogo()" style="margin-top: 10px;">Upload New Logo</button>
+    </div>
+
+    <div class="section">
+        <h3>Banners</h3>
+        <div class="flex banner-list" id="bannerList"></div>
+        <div style="margin-top: 15px;">
+            <input type="file" id="bannerUpload" accept="image/*">
+            <button type="button" onclick="uploadBanner()">Upload Banner</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Gallery</h3>
+        <div class="flex gallery-list" id="galleryList"></div>
+        <div style="margin-top: 15px;">
+            <input type="file" id="galleryUpload" accept="image/*,video/*">
+            <button type="button" onclick="uploadGallery()">Upload Gallery Item</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Text Content Editable</h3>
+        <form id="textForm">
+            <!-- Form fields populated dynamically by JS -->
+        </form>
+    </div>
+
+    <button type="button" onclick="saveData()">Save All Changes</button>
+</div>
+
+<script>
+    let siteData = {};
+
+    function showStatus(msg, isError=false) {
+        const el = document.getElementById('status');
+        el.style.display = 'block';
+        el.style.background = isError ? '#f8d7da' : '#d4edda';
+        el.style.color = isError ? '#721c24' : '#155724';
+        el.innerText = msg;
+        setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    async function fetchData() {
+        const res = await fetch('/api/data');
+        siteData = await res.json();
+        renderForm();
+    }
+
+    function renderForm() {
+        // Logo
+        document.getElementById('logoPreview').innerHTML = `<img src="${siteData.logo}" alt="Logo">`;
+        
+        // Banners
+        const bnList = document.getElementById('bannerList');
+        bnList.innerHTML = '';
+        siteData.banners.forEach((url, idx) => {
+            bnList.innerHTML += `<div><img src="${url}"><button type="button" class="remove-btn" onclick="removeBanner(${idx})">Delete</button></div>`;
+        });
+
+        // Gallery
+        const glList = document.getElementById('galleryList');
+        glList.innerHTML = '';
+        siteData.gallery.forEach((url, idx) => {
+            const isVid = url.match(/\.(mp4|webm)$/i) || url.includes('/video/upload/');
+            const media = isVid ? `<video src="${url}" style="max-width:150px;" controls></video>` : `<img src="${url}">`;
+            glList.innerHTML += `<div>${media}<br><button type="button" class="remove-btn" onclick="removeGallery(${idx})">Delete</button></div>`;
+        });
+
+        // Text Form
+        const form = document.getElementById('textForm');
+        form.innerHTML = '';
+        for(let key in siteData) {
+            if(['logo', 'banners', 'gallery'].includes(key)) continue;
+            
+            const isTextArea = siteData[key].length > 100;
+            const inputHtml = isTextArea 
+                ? `<textarea id="input_${key}">${siteData[key]}</textarea>`
+                : `<input type="text" id="input_${key}" value="${siteData[key]}">`;
+            
+            form.innerHTML += `
+                <div class="form-group">
+                    <label>${key}</label>
+                    ${inputHtml}
+                </div>
+            `;
+        }
+    }
+
+    async function uploadFile(fileElId) {
+        const fileInput = document.getElementById(fileElId);
+        if(fileInput.files.length === 0) return null;
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        showStatus('Uploading...', false);
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if(data.success) {
+            fileInput.value = '';
+            showStatus('Uploaded successfully!');
+            return data.url;
+        } else {
+            showStatus('Upload failed', true);
+            return null;
+        }
+    }
+
+    async function uploadLogo() {
+        const url = await uploadFile('logoUpload');
+        if(url) { siteData.logo = url; renderForm(); }
+    }
+
+    async function uploadBanner() {
+        const url = await uploadFile('bannerUpload');
+        if(url) { siteData.banners.push(url); renderForm(); }
+    }
+
+    function removeBanner(idx) {
+        siteData.banners.splice(idx, 1);
+        renderForm();
+    }
+
+    async function uploadGallery() {
+        const url = await uploadFile('galleryUpload');
+        if(url) { siteData.gallery.push(url); renderForm(); }
+    }
+
+    function removeGallery(idx) {
+        siteData.gallery.splice(idx, 1);
+        renderForm();
+    }
+
+    async function saveData() {
+        // Collect text values
+        for(let key in siteData) {
+            if(['logo', 'banners', 'gallery'].includes(key)) continue;
+            const el = document.getElementById(`input_${key}`);
+            if(el) siteData[key] = el.value;
+        }
+
+        showStatus('Saving...', false);
+
+        const res = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(siteData)
+        });
+        
+        if(res.ok) {
+            showStatus('Data saved successfully!');
+        } else {
+            showStatus('Failed to save data.', true);
+        }
+    }
+
+    fetchData();
+</script>
+</body>
+</html>

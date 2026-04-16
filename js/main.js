@@ -42,4 +42,62 @@ document.addEventListener("DOMContentLoaded", () => {
             // Placeholder for real logic
         });
     }
+
+    // Dynamic Data Loading
+    fetch('/api/data')
+        .then(res => {
+            // Fallback to local data.json if api fails (e.g., opened as static file)
+            if(!res.ok) return fetch('data.json').then(r => r.json());
+            return res.json();
+        })
+        .then(data => {
+            // Update Logo
+            if(data.logo && document.getElementById('logo-img')) {
+                document.getElementById('logo-img').src = data.logo;
+            }
+            
+            // Loop through keys backwards for text
+            const textKeys = ['heroTitle', 'heroSubtitle', 'projectVideoTitle', 'projectVideoSubtitle', 'peacefulVistaTitle', 'peacefulVistaText1', 'peacefulVistaText2', 'infinityLifeTitle', 'infinityLifeSubtitle', 'comfortTitle', 'comfortSubtitle', 'locationTitle', 'locationSubtitle', 'floorPlanTitle', 'floorPlanSubtitle', 'whySpecialTitle', 'whySpecialText1', 'whySpecialText2', 'whySpecialText3', 'contactTitle', 'contactSubtitle'];
+            
+            textKeys.forEach(key => {
+                const el = document.getElementById(key);
+                if(el && data[key]) {
+                    el.innerText = data[key];
+                }
+            });
+
+            // Handle Banners Slider
+            if(data.banners && data.banners.length > 0) {
+                const heroSection = document.querySelector('.hero');
+                if(heroSection) {
+                    let currentBannerIdx = 0;
+                    heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${data.banners[currentBannerIdx]}')`;
+                    
+                    if(data.banners.length > 1) {
+                        setInterval(() => {
+                            currentBannerIdx = (currentBannerIdx + 1) % data.banners.length;
+                            heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${data.banners[currentBannerIdx]}')`;
+                        }, 5000);
+                    }
+                }
+            }
+
+            // Handle Gallery
+            if(data.gallery && data.gallery.length > 0) {
+                const gSection = document.getElementById('dynamic-gallery-section');
+                const gContainer = document.getElementById('dynamic-gallery-container');
+                if(gSection && gContainer) {
+                    gSection.style.display = 'block';
+                    data.gallery.forEach(url => {
+                        const isVid = url.match(/\.(mp4|webm)$/i) || url.includes('/video/upload/');
+                        if(isVid) {
+                            gContainer.innerHTML += `<video src="${url}" controls style="max-width:300px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></video>`;
+                        } else {
+                            gContainer.innerHTML += `<img src="${url}" style="max-width:300px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">`;
+                        }
+                    });
+                }
+            }
+        })
+        .catch(err => console.error("Error loading dynamic data:", err));
 });
