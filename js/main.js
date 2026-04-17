@@ -82,13 +82,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Handle Banners Slider
-        if(data.banners && data.banners.length > 0) {
+        if(data && data.banners && Array.isArray(data.banners) && data.banners.length > 0) {
             const heroSection = document.querySelector('.hero');
             if(heroSection) {
                 let currentBannerIdx = 0;
                 
                 const setBanner = (idx) => {
                     const url = data.banners[idx];
+                    if (!url) return;
                     console.log(`Setting banner ${idx}: ${url}`);
                     heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${url}')`;
                     heroSection.style.backgroundSize = 'cover';
@@ -111,13 +112,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Handle Gallery
-        if(data.gallery && data.gallery.length > 0) {
+        if(data && data.gallery && Array.isArray(data.gallery) && data.gallery.length > 0) {
             const gSection = document.getElementById('dynamic-gallery-section');
             const gContainer = document.getElementById('dynamic-gallery-container');
             if(gSection && gContainer) {
                 gSection.style.display = 'block';
                 gContainer.innerHTML = ''; // Clear existing
                 data.gallery.forEach(url => {
+                    if (!url) return;
                     const isVid = url.match(/\.(mp4|webm)$/i) || url.includes('/video/upload/');
                     if(isVid) {
                         gContainer.innerHTML += `<video src="${url}" controls style="max-width:300px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></video>`;
