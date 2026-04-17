@@ -11,9 +11,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Configure Cloudinary
-cloudinary.config({
-  cloudinary_url: process.env.CLOUDINARY_URL
-});
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config(true); // This will automatically use the CLOUDINARY_URL from process.env
+} else {
+  console.warn("CLOUDINARY_URL not found in .env file. Uploads will fail.");
+}
 
 // Setup multer for memory storage
 const storage = multer.memoryStorage();
