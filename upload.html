@@ -69,6 +69,11 @@
     <button type="button" onclick="saveData()">Save All Changes</button>
 </div>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
 <script>
     let siteData = {};
 
@@ -82,9 +87,26 @@
     }
 
     async function fetchData() {
-        const res = await fetch('/api/data');
-        siteData = await res.json();
-        renderForm();
+        try {
+            const doc = await settingsDocRef.get();
+            if (doc.exists) {
+                siteData = doc.data();
+                renderForm();
+            } else {
+                showStatus('Initializing fresh data from data.json...', false);
+                // Optional: Seed from data.json if Firebase is empty
+                const res = await fetch('data.json').catch(() => null);
+                if (res && res.ok) {
+                    siteData = await res.json();
+                    renderForm();
+                } else {
+                    showStatus('No data found in Firebase or local data.json', true);
+                }
+            }
+        } catch (err) {
+            console.error("Firebase fetch error:", err);
+            showStatus('Error connecting to Firebase. Check console.', true);
+        }
     }
 
     function renderForm() {
@@ -204,18 +226,14 @@
             if(el) siteData[key] = el.value;
         }
 
-        showStatus('Saving...', false);
+        showStatus('Saving to Firebase...', false);
 
-        const res = await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(siteData)
-        });
-        
-        if(res.ok) {
-            showStatus('Data saved successfully!');
-        } else {
-            showStatus('Failed to save data.', true);
+        try {
+            await settingsDocRef.set(siteData, { merge: true });
+            showStatus('Data saved to Firebase successfully!');
+        } catch (err) {
+            console.error("Firebase save error:", err);
+            showStatus('Failed to save data to Firebase.', true);
         }
     }
 
