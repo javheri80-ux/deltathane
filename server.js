@@ -126,7 +126,7 @@ app.post('/api/upload', basicAuth, upload.single('file'), (req, res) => {
         })
         .catch(err => {
             console.error(err);
-            res.status(500).send('Error uploading towards Cloudinary');
+            res.status(500).json({ success: false, message: 'Cloudinary upload failed: ' + err.message });
         });
 });
 

@@ -102,7 +102,11 @@
             }
         } catch (err) {
             console.error("Firebase fetch error:", err);
-            showStatus('Error connecting to Firebase. Check console.', true);
+            if (window.firebaseConfig && window.firebaseConfig.apiKey === "YOUR_API_KEY") {
+                showStatus('FATAL: Firebase keys are missing in js/firebase-config.js!', true);
+            } else {
+                showStatus('Error connecting to Firebase. Check if your project is set up.', true);
+            }
         }
     }
 
@@ -174,17 +178,31 @@
         formData.append('file', fileInput.files[0]);
 
         showStatus('Uploading...', false);
-        const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
-        if(data.success) {
-            fileInput.value = '';
-            showStatus('Uploaded successfully!');
-            return data.url;
-        } else {
-            showStatus('Upload failed', true);
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Server Error:", text);
+                showStatus(`Upload failed: ${res.status} ${res.statusText}. Check server logs.`, true);
+                return null;
+            }
+
+            const data = await res.json();
+            if(data.success) {
+                fileInput.value = '';
+                showStatus('Uploaded successfully!');
+                return data.url;
+            } else {
+                showStatus('Upload failed: ' + (data.message || 'Unknown error'), true);
+                return null;
+            }
+        } catch (err) {
+            console.error("Upload process error:", err);
+            showStatus('Network error during upload. Is your server running?', true);
             return null;
         }
     }

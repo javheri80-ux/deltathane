@@ -10,7 +10,11 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey === "YOUR_API_KEY") {
+  console.error("Firebase is not configured! Please update js/firebase-config.js with your actual credentials.");
+} else if (typeof firebase !== 'undefined') {
+  firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.firestore();
 
 // Helpful to have a reference to our main settings document
