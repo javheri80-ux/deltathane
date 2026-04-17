@@ -93,15 +93,7 @@
                 siteData = doc.data();
                 renderForm();
             } else {
-                showStatus('Initializing fresh data from data.json...', false);
-                // Optional: Seed from data.json if Firebase is empty
-                const res = await fetch('data.json').catch(() => null);
-                if (res && res.ok) {
-                    siteData = await res.json();
-                    renderForm();
-                } else {
-                    showStatus('No data found in Firebase or local data.json', true);
-                }
+                showStatus('No data found in Firebase Firestore. Please add content and save.', true);
             }
         } catch (err) {
             console.error("Firebase fetch error:", err);

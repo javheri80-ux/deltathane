@@ -43,26 +43,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Dynamic Data Loading with Firebase Real-time Updates
+    // Dynamic Data Loading with Firebase Real-time Updates (No fallback to data.json)
     settingsDocRef.onSnapshot((doc) => {
-        let data = {};
         if (doc.exists) {
-            data = doc.data();
+            const data = doc.data();
+            console.log("Firebase data updated:", data);
+            applyData(data);
         } else {
-            console.log("No Firebase data found, falling back to data.json");
-            fetch('data.json')
-                .then(r => r.json())
-                .then(d => applyData(d))
-                .catch(err => console.error("Error loading fallback data:", err));
-            return;
+            console.warn("No Firebase data found in 'siteSettings/mainData'. Please check your Firestore database.");
         }
-        applyData(data);
     }, (err) => {
         console.error("Firestore listener error:", err);
-        // Fallback if Firebase fails (e.g. permission denied or wrong config)
-        fetch('data.json')
-            .then(r => r.json())
-            .then(d => applyData(d));
     });
 
     function applyData(data) {
@@ -95,15 +86,25 @@ document.addEventListener("DOMContentLoaded", () => {
             const heroSection = document.querySelector('.hero');
             if(heroSection) {
                 let currentBannerIdx = 0;
-                heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${data.banners[currentBannerIdx]}')`;
                 
-                // Clear existing intervals if any (prevents double intervals on snapshot updates)
+                const setBanner = (idx) => {
+                    const url = data.banners[idx];
+                    console.log(`Setting banner ${idx}: ${url}`);
+                    heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${url}')`;
+                    heroSection.style.backgroundSize = 'cover';
+                    heroSection.style.backgroundPosition = 'center';
+                    heroSection.style.backgroundRepeat = 'no-repeat';
+                };
+
+                setBanner(currentBannerIdx);
+                
+                // Clear existing intervals
                 if(window.bannerInterval) clearInterval(window.bannerInterval);
                 
                 if(data.banners.length > 1) {
                     window.bannerInterval = setInterval(() => {
                         currentBannerIdx = (currentBannerIdx + 1) % data.banners.length;
-                        heroSection.style.backgroundImage = `linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${data.banners[currentBannerIdx]}')`;
+                        setBanner(currentBannerIdx);
                     }, 5000);
                 }
             }
