@@ -87,6 +87,13 @@
     }
 
     async function fetchData() {
+        if (!settingsDocRef) {
+            console.error("Firebase not initialized. settingsDocRef is missing.");
+            if (window.firebaseConfig && window.firebaseConfig.apiKey === "YOUR_API_KEY") {
+                showStatus('FATAL: Firebase is NOT configured! Update js/firebase-config.js.', true);
+            }
+            return;
+        }
         try {
             const doc = await settingsDocRef.get();
             if (doc.exists) {
@@ -242,6 +249,10 @@
     }
 
     async function saveData() {
+        if (!settingsDocRef) {
+            showStatus('Cannot save: Firebase is not configured. Please update js/firebase-config.js with your real keys.', true);
+            return;
+        }
         // Collect text values
         for(let key in siteData) {
             if(['logo', 'banners', 'gallery'].includes(key) || key.startsWith('img_')) continue;
