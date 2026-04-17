@@ -66,6 +66,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
+            // Update all static images with IDs starting with img_
+            const imgKeys = ['img_projectVideo', 'img_infinity1', 'img_infinity2', 'img_infinity3', 'img_infinity4', 'img_comfort', 'img_floor1', 'img_floor2'];
+            imgKeys.forEach(key => {
+                const el = document.getElementById(key);
+                if(el && data[key]) {
+                    el.src = data[key];
+                }
+            });
+
             // Handle Banners Slider
             if(data.banners && data.banners.length > 0) {
                 const heroSection = document.querySelector('.hero');

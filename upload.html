@@ -53,6 +53,13 @@
     </div>
 
     <div class="section">
+        <h3>Other Static Images</h3>
+        <div id="otherImagesForm">
+            <!-- Form fields populated dynamically by JS -->
+        </div>
+    </div>
+
+    <div class="section">
         <h3>Text Content Editable</h3>
         <form id="textForm">
             <!-- Form fields populated dynamically by JS -->
@@ -100,12 +107,28 @@
             glList.innerHTML += `<div>${media}<br><button type="button" class="remove-btn" onclick="removeGallery(${idx})">Delete</button></div>`;
         });
 
+        // Other Images Form
+        const imgForm = document.getElementById('otherImagesForm');
+        imgForm.innerHTML = '';
+
         // Text Form
         const form = document.getElementById('textForm');
         form.innerHTML = '';
         for(let key in siteData) {
             if(['logo', 'banners', 'gallery'].includes(key)) continue;
             
+            if(key.startsWith('img_')) {
+                imgForm.innerHTML += `
+                    <div class="form-group" style="padding-bottom:10px; border-bottom: 1px solid #ccc;">
+                        <label>${key.replace('img_', 'Image: ')}</label>
+                        <div style="margin-bottom:10px;"><img src="${siteData[key]}" style="max-width:150px; border-radius:5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"></div>
+                        <input type="file" id="upload_${key}" accept="image/*">
+                        <button type="button" onclick="uploadGenericImage('${key}')" style="margin-top: 5px; font-size:0.9rem; padding: 5px 10px;">Upload Image</button>
+                    </div>
+                `;
+                continue;
+            }
+
             const isTextArea = siteData[key].length > 100;
             const inputHtml = isTextArea 
                 ? `<textarea id="input_${key}">${siteData[key]}</textarea>`
@@ -168,10 +191,15 @@
         renderForm();
     }
 
+    async function uploadGenericImage(key) {
+        const url = await uploadFile('upload_' + key);
+        if(url) { siteData[key] = url; renderForm(); }
+    }
+
     async function saveData() {
         // Collect text values
         for(let key in siteData) {
-            if(['logo', 'banners', 'gallery'].includes(key)) continue;
+            if(['logo', 'banners', 'gallery'].includes(key) || key.startsWith('img_')) continue;
             const el = document.getElementById(`input_${key}`);
             if(el) siteData[key] = el.value;
         }

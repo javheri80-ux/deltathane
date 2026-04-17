@@ -24,5 +24,13 @@
   "banners": [
     "assets/hero_banner.jpg"
   ],
-  "gallery": []
+  "gallery": [],
+  "img_projectVideo": "https://images.unsplash.com/photo-1600607686527-6fb886090705?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+  "img_infinity1": "https://images.unsplash.com/photo-1540541338287-41700207dee6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+  "img_infinity2": "https://images.unsplash.com/photo-1596464716127-f2a82984de30?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+  "img_infinity3": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+  "img_infinity4": "assets/infinity_pool.png",
+  "img_comfort": "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+  "img_floor1": "https://images.unsplash.com/photo-1600607688960-e09882c53cd5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+  "img_floor2": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
 }

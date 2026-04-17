@@ -4,6 +4,7 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const { put, list } = require('@vercel/blob');
 require('dotenv').config();
 
 const app = express();
@@ -46,20 +47,54 @@ const basicAuth = (req, res, next) => {
 app.use(express.static(__dirname, { dotfiles: 'ignore' }));
 
 // API: Get Data
-app.get('/api/data', (req, res) => {
-    fs.readFile(path.join(__dirname, 'data.json'), 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading data');
-        res.json(JSON.parse(data));
-    });
+app.get('/api/data', async (req, res) => {
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+        try {
+            const { blobs } = await list();
+            const dataBlob = blobs.find(b => b.pathname === 'data.json');
+            if (dataBlob) {
+                const response = await fetch(dataBlob.url);
+                const data = await response.json();
+                return res.json(data);
+            } else {
+                // Initial fallback
+                const localData = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf8');
+                return res.json(JSON.parse(localData));
+            }
+        } catch (err) {
+            console.error('Error reading from blob:', err);
+            return res.status(500).send('Error reading data');
+        }
+    } else {
+        fs.readFile(path.join(__dirname, 'data.json'), 'utf8', (err, data) => {
+            if (err) return res.status(500).send('Error reading data');
+            res.json(JSON.parse(data));
+        });
+    }
 });
 
 // API: Save Data (Protected)
-app.post('/api/save', basicAuth, (req, res) => {
+app.post('/api/save', basicAuth, async (req, res) => {
     const newData = req.body;
-    fs.writeFile(path.join(__dirname, 'data.json'), JSON.stringify(newData, null, 2), (err) => {
-        if (err) return res.status(500).send('Error saving data');
-        res.send({ success: true });
-    });
+    const jsonString = JSON.stringify(newData, null, 2);
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+        try {
+            await put('data.json', jsonString, {
+                access: 'public',
+                addRandomSuffix: false
+            });
+            res.send({ success: true, source: 'blob' });
+        } catch (err) {
+            console.error('Error saving to blob:', err);
+            res.status(500).send('Error saving data');
+        }
+    } else {
+        fs.writeFile(path.join(__dirname, 'data.json'), jsonString, (err) => {
+            if (err) return res.status(500).send('Error saving data');
+            res.send({ success: true, source: 'local' });
+        });
+    }
 });
 
 // API: Upload Media to Cloudinary (Protected)
