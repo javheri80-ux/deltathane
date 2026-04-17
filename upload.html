@@ -256,7 +256,7 @@
             showStatus('Data saved to Firebase successfully!');
         } catch (err) {
             console.error("Firebase save error:", err);
-            showStatus('Failed to save data to Firebase.', true);
+            showStatus('Failed to save data to Firebase: ' + (err.message || 'Unknown error'), true);
         }
     }
 

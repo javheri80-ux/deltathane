@@ -10,12 +10,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+let db;
+let settingsDocRef;
+
 if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey === "YOUR_API_KEY") {
   console.error("Firebase is not configured! Please update js/firebase-config.js with your actual credentials.");
 } else if (typeof firebase !== 'undefined') {
-  firebase.initializeApp(firebaseConfig);
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    settingsDocRef = db.collection('siteSettings').doc('mainData');
+  } catch (err) {
+    console.error("Firebase initialization failed:", err);
+  }
 }
-const db = firebase.firestore();
-
-// Helpful to have a reference to our main settings document
-const settingsDocRef = db.collection('siteSettings').doc('mainData');

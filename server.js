@@ -10,11 +10,26 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configure Cloudinary
-if (process.env.CLOUDINARY_URL) {
-  cloudinary.config(true); // This will automatically use the CLOUDINARY_URL from process.env
+// Configure Cloudinary explicitly from URL
+const cloudinaryUrl = process.env.CLOUDINARY_URL;
+if (cloudinaryUrl) {
+  try {
+    const urlParts = cloudinaryUrl.replace('cloudinary://', '').split(/[:@]/);
+    if (urlParts.length === 3) {
+      cloudinary.config({
+        cloud_name: urlParts[2],
+        api_key: urlParts[0],
+        api_secret: urlParts[1]
+      });
+      console.log("Cloudinary configured successfully.");
+    } else {
+      console.error("Invalid CLOUDINARY_URL format in .env");
+    }
+  } catch (err) {
+    console.error("Error parsing CLOUDINARY_URL:", err.message);
+  }
 } else {
-  console.warn("CLOUDINARY_URL not found in .env file. Uploads will fail.");
+  console.warn("CLOUDINARY_URL not found in .env file.");
 }
 
 // Setup multer for memory storage
