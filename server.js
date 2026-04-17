@@ -4,7 +4,7 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
-const { put, list } = require('@vercel/blob');
+const cheerio = require('cheerio');
 require('dotenv').config();
 
 const app = express();
@@ -48,53 +48,67 @@ app.use(express.static(__dirname, { dotfiles: 'ignore' }));
 
 // API: Get Data
 app.get('/api/data', async (req, res) => {
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-        try {
-            const { blobs } = await list();
-            const dataBlob = blobs.find(b => b.pathname === 'data.json');
-            if (dataBlob) {
-                const response = await fetch(dataBlob.url);
-                const data = await response.json();
-                return res.json(data);
-            } else {
-                // Initial fallback
-                const localData = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf8');
-                return res.json(JSON.parse(localData));
-            }
-        } catch (err) {
-            console.error('Error reading from blob:', err);
-            return res.status(500).send('Error reading data');
-        }
-    } else {
-        fs.readFile(path.join(__dirname, 'data.json'), 'utf8', (err, data) => {
-            if (err) return res.status(500).send('Error reading data');
-            res.json(JSON.parse(data));
-        });
-    }
+    fs.readFile(path.join(__dirname, 'data.json'), 'utf8', (err, data) => {
+        if (err) return res.status(500).send('Error reading data');
+        res.json(JSON.parse(data));
+    });
 });
 
-// API: Save Data (Protected)
-app.post('/api/save', basicAuth, async (req, res) => {
+// API: Save Data (Protected) & Update HTML Statistically
+app.post('/api/save', basicAuth, (req, res) => {
     const newData = req.body;
-    const jsonString = JSON.stringify(newData, null, 2);
-
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
+    fs.writeFile(path.join(__dirname, 'data.json'), JSON.stringify(newData, null, 2), (err) => {
+        if (err) return res.status(500).send('Error saving data');
+        
         try {
-            await put('data.json', jsonString, {
-                access: 'public',
-                addRandomSuffix: false
+            const htmlPath = path.join(__dirname, 'index.html');
+            let html = fs.readFileSync(htmlPath, 'utf8');
+            const $ = cheerio.load(html);
+            
+            // Text Replacements
+            const textKeys = ['heroTitle', 'heroSubtitle', 'projectVideoTitle', 'projectVideoSubtitle', 'peacefulVistaTitle', 'peacefulVistaText1', 'peacefulVistaText2', 'infinityLifeTitle', 'infinityLifeSubtitle', 'comfortTitle', 'comfortSubtitle', 'locationTitle', 'locationSubtitle', 'floorPlanTitle', 'floorPlanSubtitle', 'whySpecialTitle', 'whySpecialText1', 'whySpecialText2', 'whySpecialText3', 'contactTitle', 'contactSubtitle'];
+            textKeys.forEach(key => {
+                if(newData[key]) $(`#${key}`).text(newData[key]);
             });
-            res.send({ success: true, source: 'blob' });
-        } catch (err) {
-            console.error('Error saving to blob:', err);
-            res.status(500).send('Error saving data');
+
+            // Image Replacements
+            const imgKeys = ['img_projectVideo', 'img_infinity1', 'img_infinity2', 'img_infinity3', 'img_infinity4', 'img_comfort', 'img_floor1', 'img_floor2'];
+            imgKeys.forEach(key => {
+                if(newData[key]) $(`#${key}`).attr('src', newData[key]);
+            });
+
+            if(newData.logo) {
+                $('#logo-img').attr('src', newData.logo);
+            }
+
+            if(newData.banners && newData.banners.length > 0) {
+                $('.hero').attr('style', `background: linear-gradient(rgba(0,59,34,0.3), rgba(0,59,34,0.3)), url('${newData.banners[0]}') no-repeat center center/cover;`);
+            }
+
+            if(newData.gallery && newData.gallery.length > 0) {
+                $('#dynamic-gallery-section').css('display', 'block');
+                let galleryHtml = '';
+                newData.gallery.forEach(url => {
+                    const isVid = url.match(/\.(mp4|webm)$/i) || url.includes('/video/upload/');
+                    if(isVid) {
+                        galleryHtml += `<video src="${url}" controls style="max-width:300px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);"></video>\n`;
+                    } else {
+                        galleryHtml += `<img src="${url}" style="max-width:300px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">\n`;
+                    }
+                });
+                $('#dynamic-gallery-container').html(galleryHtml);
+            } else {
+                $('#dynamic-gallery-section').css('display', 'none');
+                $('#dynamic-gallery-container').html('');
+            }
+
+            fs.writeFileSync(htmlPath, $.html());
+            res.send({ success: true });
+        } catch (htmlErr) {
+            console.error(htmlErr);
+            res.status(500).send('Error editing HTML');
         }
-    } else {
-        fs.writeFile(path.join(__dirname, 'data.json'), jsonString, (err) => {
-            if (err) return res.status(500).send('Error saving data');
-            res.send({ success: true, source: 'local' });
-        });
-    }
+    });
 });
 
 // API: Upload Media to Cloudinary (Protected)
